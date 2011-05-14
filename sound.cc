@@ -11,7 +11,7 @@
   - Throw exceptions instead of just writing ERRORs to stderr.
   - provide a vumeter per sound
   - play callbacks (DONE)
-  - render(filePath, cb) returns a sound to the cb(err, soundObject);
+  - bufferify(filePath, cb) returns a sound to the cb(err, soundObject);
 */
 
 #include <v8.h>
@@ -37,8 +37,8 @@
     ssize_t bufferLength;
     
     AudioQueueRef AQ;
-    ssize_t AQBuffer1Length;
-    ssize_t AQBuffer2Length;
+    UInt32 AQBuffer1Length;
+    UInt32 AQBuffer2Length;
     AudioQueueBufferRef AQBuffer1;
     AudioQueueBufferRef AQBuffer2;
     AudioStreamBasicDescription format;
@@ -51,6 +51,7 @@
   } playerStruct;
   
   static AudioStreamBasicDescription gFormato;
+  static playerStruct* fondoSnd;
   
 #endif
 
@@ -74,18 +75,80 @@ static Persistent<String> loop_symbol;
 static Persistent<String> player_symbol;
 static Persistent<String> callback_symbol;
 static Persistent<String> id_symbol;
-static Persistent<String> render_symbol;
+static Persistent<String> bufferify_symbol;
 
 static Persistent<Function> volume_function;
 static Persistent<Function> loop_function;
 static Persistent<Function> play_function;
 static Persistent<Function> pause_function;
 static Persistent<Function> create_function;
-static Persistent<Function> render_function;
+static Persistent<Function> bufferify_function;
 
 static long int createdCtr= 0;
 static long int destroyedCtr= 0;
 static long int wasPlayingCtr= 0;
+static long int playingNow= 0;
+
+
+
+
+
+
+
+
+// ================
+// = tracker(int) =
+// ================
+
+void tracker (int i) {
+  playingNow+= i;
+  
+  if (playingNow > 0) {
+    if (fondoSnd->playing) {
+      fondoSnd->playing= 0;
+      AudioQueuePause(fondoSnd->AQ);
+      //fprintf(stderr, "\nfondoSnd->pause()");
+    }
+  }
+  else {
+      if (!fondoSnd->playing) {
+      fondoSnd->playing= 1;
+      AudioQueueStart(fondoSnd->AQ, NULL);
+      //fprintf(stderr, "\nfondoSnd->play()");
+    }
+  }
+}
+
+
+
+
+
+
+
+// ===============
+// = newPlayer() =
+// ===============
+
+playerStruct* newPlayer () {
+  playerStruct* player;
+  
+  player= (playerStruct*) calloc(1, sizeof(playerStruct));
+  V8::AdjustAmountOfExternalAllocatedMemory(sizeof(playerStruct));
+  
+  player->id= createdCtr++;
+  player->format= gFormato;
+  player->loop= 0;
+  player->hasCallback= 0;
+  player->paused= 0;
+  player->playing= 0;
+  player->callbackIsPending= 0;
+  player->destroying= 0;
+  
+  return player;
+}
+
+
+
 
 
 
@@ -214,10 +277,14 @@ v8::Handle<Value> Play (const Arguments &args) {
   
   if (player->paused) {
     player->paused= 0;
+    player->playing= 1;
+    tracker(+1);
+    
     err0= AudioQueueStart(player->AQ, NULL);
     if (err0) {
       fprintf(stderr, " ERROR:AudioQueueStart:[%d]", err0);
     }
+    
     goto end;
   }
   
@@ -236,6 +303,7 @@ v8::Handle<Value> Play (const Arguments &args) {
   }
   
   player->playing= 1;
+  tracker(+1);
   
   err2= AudioQueueStart(player->AQ, NULL);
   if (err2) {
@@ -261,8 +329,6 @@ v8::Handle<Value> Play (const Arguments &args) {
 
 
 
-
-
 // ======================================
 // = **** AudioQueueBufferCallback **** =
 // ======================================
@@ -278,21 +344,29 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
   
   
   if (player->destroying) {
-    //fprintf(stderr, " DESTROYING");
+    
+    //fprintf(stderr, "\n[%ld] DESTROYING", player->id);
+    
     goto end;
   };
   
   if (!player->playing) {
-    //fprintf(stderr, " IGNORE");
+    
+    //fprintf(stderr, "\n[%ld] IGNORE", player->id);
+    
     goto end;
   }
   
-  if (player->loop && (AQBuffer == player->AQBuffer2)) {
-    //fprintf(stderr, " loop--");
+  if (player->loop && (AQBuffer == player->AQBuffer1)) {
+    
+    //fprintf(stderr, "\n[%ld] loop--", player->id);
+    
     player->loop--;
   }
   
   if (player->loop) {
+    
+    //fprintf(stderr, "\n[%ld] RE_QUEUE[%d]", player->id, 1+(AQBuffer == player->AQBuffer2));
     
     // Si estamos en loop simplemente hay que volver a meterlo en la cola.
     
@@ -303,10 +377,10 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
       fprintf(stderr, " ERROR:AQBufferCallback AudioQueueEnqueueBuffer:[%d] ", err);
     }
     
-    //fprintf(stderr, " loop");
   }
   else if (AQBuffer == player->AQBuffer2) {
-    //fprintf(stderr, " CLEANUP");
+    
+    //fprintf(stderr, "\n[%ld] CLEANUP", player->id);
     
     player->playing= 0;
     
@@ -325,7 +399,11 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
     }
   }
   else {
-    //fprintf(stderr, " STOP");
+    
+    //fprintf(stderr, "\n[%ld] STOP", player->id);
+    
+    tracker(-1);
+    
     err= AudioQueueStop(AQ, false);
     if (err) {
       fprintf(stderr, " ERROR:AudioQueueStop:[%d]", err);
@@ -374,6 +452,7 @@ v8::Handle<Value> Pause (const Arguments &args) {
   }
   
   player->paused= 1;
+  tracker(-1);
   err= AudioQueuePause(player->AQ);
   if (err) {
     fprintf(stderr, " ERROR:AudioQueuePause:[%d]", err);
@@ -426,7 +505,7 @@ void destroyerCB (Persistent<Value> object, void* parameter) {
   err= AudioQueueDispose(player->AQ, true);
   if (err) {
     
-    fprintf(stderr, "\n[%ld] DESTROYING: AudioQueueDispose ERROR:[%d]", player->id, err);
+    //fprintf(stderr, "\n[%ld] DESTROYING: AudioQueueDispose ERROR:[%d]", player->id, err);
     
     player->destroying= 0;
     object.MakeWeak((void*) player, destroyerCB);
@@ -498,10 +577,7 @@ v8::Handle<Value> Create (const Arguments &args) {
 #if defined (__APPLE__)
 
   OSStatus err;
-  playerStruct* player;
-  
-  player= (playerStruct*) calloc(1, sizeof(playerStruct));
-  player->id= createdCtr++;
+  playerStruct* player= newPlayer();
   
   player->AQBuffer1Length= bufferLength/2;
   (player->AQBuffer1Length % 4) && (player->AQBuffer1Length-= (player->AQBuffer1Length % 4));
@@ -510,16 +586,16 @@ v8::Handle<Value> Create (const Arguments &args) {
   //fprintf(stderr, "\nOK *** AQBufferSize -> [%ld, %ld]", player->AQBuffer1Length, player->AQBuffer2Length);
   //fflush(stderr);
   
-  player->format= gFormato;
+  
   
   err= AudioQueueNewOutput(
-    &(player->format),       // const AudioStreamBasicDescription   *inFormat
+    &player->format,         // const AudioStreamBasicDescription   *inFormat
     AQBufferCallback,        // AudioQueueOutputCallback            inCallbackProc
     player,                  // void                                *inUserData
     NULL,                    // CFRunLoopRef                        inCallbackRunLoop
     kCFRunLoopDefaultMode,   // CFStringRef                         inCallbackRunLoopMode
     0,                       // UInt32                              inFlags
-    &(player->AQ)            // AudioQueueRef                       *outAQ
+    &player->AQ              // AudioQueueRef                       *outAQ
   );
   
   if (err) {
@@ -537,7 +613,7 @@ v8::Handle<Value> Create (const Arguments &args) {
   err= AudioQueueAllocateBuffer (
     player->AQ,               // AudioQueueRef inAQ
     player->AQBuffer1Length,  // UInt32 inBufferByteSize
-    &(player->AQBuffer1)      // AudioQueueBufferRef *outBuffer
+    &player->AQBuffer1        // AudioQueueBufferRef *outBuffer
   );
   
   if (err) {
@@ -549,7 +625,7 @@ v8::Handle<Value> Create (const Arguments &args) {
   err= AudioQueueAllocateBuffer (
     player->AQ,                // AudioQueueRef inAQ
     player->AQBuffer2Length,   // UInt32 inBufferByteSize
-    &(player->AQBuffer2)       // AudioQueueBufferRef *outBuffer
+    &player->AQBuffer2         // AudioQueueBufferRef *outBuffer
   );
   
   if (err) {
@@ -558,16 +634,9 @@ v8::Handle<Value> Create (const Arguments &args) {
     return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
   }
   
-  V8::AdjustAmountOfExternalAllocatedMemory(bufferLength + sizeof(playerStruct));
+  V8::AdjustAmountOfExternalAllocatedMemory(bufferLength);
   memcpy(player->AQBuffer1->mAudioData, bufferData, player->AQBuffer1Length);
   memcpy(player->AQBuffer2->mAudioData, (bufferData+ player->AQBuffer1Length), player->AQBuffer2Length);
-  
-  player->loop= 0;
-  player->hasCallback= 0;
-  player->paused= 0;
-  player->playing= 0;
-  player->callbackIsPending= 0;
-  player->destroying= 0;
   
   //fprintf(stderr, "\nOK *** Sound::Create() END");
   
@@ -588,7 +657,6 @@ v8::Handle<Value> Create (const Arguments &args) {
   JSObject->Set(pause_symbol, pause_function);
   JSObject->Set(volume_symbol, volume_function);
   JSObject->Set(loop_symbol, loop_function);
-  JSObject->Set(render_symbol, render_function);
   JSObject->Set(data_symbol, buffer);
   JSObject->SetHiddenValue(player_symbol, v8::External::Wrap((void*) player));
   
@@ -606,17 +674,17 @@ v8::Handle<Value> Create (const Arguments &args) {
 
 
 
-// ====================
-// = **** Render **** =
-// ====================
+// =========================
+// = **** Bufferify() **** =
+// =========================
 
-v8::Handle<Value> Render (const Arguments &args) {
+v8::Handle<Value> Bufferify (const Arguments &args) {
   
   v8::HandleScope scope;
   
   
   end:
-  //fprintf(stderr, "\nOK *** Render\n");
+  //fprintf(stderr, "\nOK *** Bufferify\n");
   //fflush(stderr);
 
   return v8::Undefined();
@@ -697,17 +765,17 @@ extern "C" {
     volume_symbol= v8::Persistent<String>::New(v8::String::New("volume"));
     loop_symbol= v8::Persistent<String>::New(v8::String::New("loop"));
     player_symbol= v8::Persistent<String>::New(v8::String::New("_player"));
-    render_symbol= v8::Persistent<String>::New(v8::String::New("render"));
+    bufferify_symbol= v8::Persistent<String>::New(v8::String::New("bufferify"));
     
     volume_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Volume)->GetFunction());
     loop_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Loop)->GetFunction());
     play_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Play)->GetFunction());
     pause_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Pause)->GetFunction());
     create_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Create)->GetFunction());
-    render_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Render)->GetFunction());
+    bufferify_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Bufferify)->GetFunction());
     
     target->Set(v8::String::New("create"), v8::Persistent<Function>::New(v8::FunctionTemplate::New(Create)->GetFunction()));
-    target->Set(v8::String::New("render"), v8::Persistent<Function>::New(v8::FunctionTemplate::New(Render)->GetFunction()));
+    target->Set(v8::String::New("bufferify"), v8::Persistent<Function>::New(v8::FunctionTemplate::New(Bufferify)->GetFunction()));
     
     // Start async events for callbacks.
     ev_async_init(&eio_sound_async_notifier, Callback);
@@ -723,6 +791,30 @@ extern "C" {
     gFormato.mBytesPerFrame= 4;
     gFormato.mChannelsPerFrame= 2;
     gFormato.mBitsPerChannel= 16;
+    
+    /*
+      This is a dummy player to init the sound machinery and to keep it up and running when no other sounds are playing.
+      It does not need any buffers, it just plays silence. It's paused when not needed (when other sounds are playing)
+      and restarted when no other sounds are playing (tracker() keeps track of that).
+    */
+    
+    OSStatus err;
+    fondoSnd= newPlayer();
+    err= AudioQueueNewOutput(
+      &fondoSnd->format,         // const AudioStreamBasicDescription   *inFormat
+      AQBufferCallback,          // AudioQueueOutputCallback            inCallbackProc
+      fondoSnd,                  // void                                *inUserData
+      NULL,                      // CFRunLoopRef                        inCallbackRunLoop
+      kCFRunLoopDefaultMode,     // CFStringRef                         inCallbackRunLoopMode
+      0,                         // UInt32                              inFlags
+      &fondoSnd->AQ              // AudioQueueRef                       *outAQ
+    );
+    
+    err= AudioQueueStart(fondoSnd->AQ, NULL);
+    if (err) {
+      fprintf(stderr, "\nERROR *** Sound::Init AudioQueueStart:[%d]\n", err);
+    }
+    
 #endif
 
     fprintf(stderr, "\nOK *** Sound::init");

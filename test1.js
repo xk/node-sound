@@ -4,7 +4,7 @@ var Sound= require('./build/default/sound');
 
 (function loop () {
   process.nextTick(loop);
-  Sound.create(new Buffer(65536)).play();
+  Sound.create(new Buffer(8192)).play();
   process.stdout.write('.');
 })();
 

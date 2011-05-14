@@ -1,4 +1,4 @@
-// exercise callbacks;
+// exercise recursive .play() from the callback; It's a bad idea, you'll get big glitches, should use .loop() instead !
 
 var Sound= require('./build/default/sound');
 
@@ -7,14 +7,15 @@ var quit= setTimeout(function nop(){}, 1e9); // don't quit
 var howMany= 999;
 
 function cb () {
-  process.stdout.write('\n['+ this.id+ '].callback');
+  if (this.again) {
+    process.stdout.write('\n['+ this.id+ '].callback: NO_MORE');
+  }
+  else {
+    this.again= 1;
+    this.play(cb);
+    process.stdout.write('\n['+ this.id+ '].callback: PLAY_IT_AGAIN'); // Sam.
+  }
 }
-
-
-var buffer= new Buffer(44100*4);
-var i= buffer.length;
-while (i--) buffer[i]= 0;
-Sound.create(buffer).loop(1e9).play();
 
 
 var buffer= new Buffer(2048);
