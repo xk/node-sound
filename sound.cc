@@ -104,8 +104,6 @@ static long int playingNow= 0;
 void tracker (int i) {
   playingNow+= i;
   
-  return;
-  
   if (playingNow > 0) {
     if (fondoSnd->playing) {
       fondoSnd->playing= 0;
