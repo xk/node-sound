@@ -422,7 +422,8 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
   }
   
   end:
-  fflush(stderr);
+  
+  //fflush(stderr);
   return;
 }
 
