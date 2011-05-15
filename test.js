@@ -4,16 +4,13 @@
 var Sound= require('./build/default/sound');
 var sounds= [];
 
-var bufferShort= new Buffer(532); // 532/(44100*4) -> 0,003015873016 s -> ~3 ms
-[].forEach.call(bufferShort, noise);
-
-function noise (v,i,o) {
-  o[i]= Math.floor(Math.random()*256);
-}
+var tinyBuffer= new Buffer(532); // 532/(44100*4) -> 0,003015873016 s -> ~3 ms
+var len= tinyBuffer.length;
+while (len--) tinyBuffer[len]= Math.floor(256*Math.random());
 
 
 var i= 99; // Create this many identical sounds.
-while (i--) sounds[i]= Sound.create(bufferShort);
+while (i--) sounds[i]= Sound.create(tinyBuffer);
 
 var sndIndex= 0;
 function demo (ms) {
@@ -23,8 +20,9 @@ function demo (ms) {
   do {
     
     t+= ms;
+    var playNext= sounds[sndIndex];
     while (Date.now() < t) ;
-    sounds[sndIndex].play();
+    playNext.play();
     
     sndIndex= ++sndIndex % sounds.length;
   } while (Date.now() < quit);
