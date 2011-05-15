@@ -45,6 +45,7 @@
     
     int hasCallback;
     int callbackIsPending;
+    v8::Persistent<v8::Object> pendingJSCallback;
     v8::Persistent<v8::Object> JSObject;
     v8::Persistent<v8::Object> JSCallback;
     
@@ -103,6 +104,8 @@ static long int playingNow= 0;
 void tracker (int i) {
   playingNow+= i;
   
+  return;
+  
   if (playingNow > 0) {
     if (fondoSnd->playing) {
       fondoSnd->playing= 0;
@@ -138,11 +141,11 @@ playerStruct* newPlayer () {
   player->id= createdCtr++;
   player->format= gFormato;
   player->loop= 0;
-  player->hasCallback= 0;
   player->paused= 0;
   player->playing= 0;
-  player->callbackIsPending= 0;
   player->destroying= 0;
+  player->hasCallback= 0;
+  player->callbackIsPending= 0;
   
   return player;
 }
@@ -251,7 +254,7 @@ v8::Handle<Value> Play (const Arguments &args) {
   
 #if defined (__APPLE__)
   
-  OSStatus err0, err1, err2;
+  OSStatus err;
   playerStruct* player;
   
   player= (playerStruct*) (v8::External::Unwrap(args.This()->GetHiddenValue(player_symbol)));
@@ -280,9 +283,9 @@ v8::Handle<Value> Play (const Arguments &args) {
     player->playing= 1;
     tracker(+1);
     
-    err0= AudioQueueStart(player->AQ, NULL);
-    if (err0) {
-      fprintf(stderr, " ERROR:AudioQueueStart:[%d]", err0);
+    err= AudioQueueStart(player->AQ, NULL);
+    if (err) {
+      fprintf(stderr, " ERROR:AudioQueueStart:[%d]", err);
     }
     
     goto end;
@@ -290,24 +293,27 @@ v8::Handle<Value> Play (const Arguments &args) {
   
   if (player->playing) goto end;
   
-  player->AQBuffer1->mAudioDataByteSize= player->AQBuffer1Length;
-  err0= AudioQueueEnqueueBuffer(player->AQ, player->AQBuffer1, 0, NULL);
-  if (err0) {
-    fprintf(stderr, " ERROR:AudioQueueEnqueueBuffer:[%d]", err0);
-  }
-  
-  player->AQBuffer2->mAudioDataByteSize= player->AQBuffer2Length;
-  err1= AudioQueueEnqueueBuffer(player->AQ, player->AQBuffer2, 0, NULL);
-  if (err1) {
-    fprintf(stderr, " ERROR:AudioQueueEnqueueBuffer:[%d]", err1);
-  }
+  //fprintf(stderr, "\n[%d] PLAY", player->id);
+  //fflush(stderr);
   
   player->playing= 1;
   tracker(+1);
   
-  err2= AudioQueueStart(player->AQ, NULL);
-  if (err2) {
-    fprintf(stderr, " ERROR:AudioQueueStart:[%d]", err2);
+  player->AQBuffer1->mAudioDataByteSize= player->AQBuffer1Length;
+  err= AudioQueueEnqueueBuffer(player->AQ, player->AQBuffer1, 0, NULL);
+  if (err) {
+    fprintf(stderr, " ERROR:AudioQueueEnqueueBuffer:[%d]", err);
+  }
+  
+  player->AQBuffer2->mAudioDataByteSize= player->AQBuffer2Length;
+  err= AudioQueueEnqueueBuffer(player->AQ, player->AQBuffer2, 0, NULL);
+  if (err) {
+    fprintf(stderr, " ERROR:AudioQueueEnqueueBuffer:[%d]", err);
+  }
+  
+  err= AudioQueueStart(player->AQ, NULL);
+  if (err) {
+    fprintf(stderr, " ERROR:AudioQueueStart:[%d]", err);
   }
   
 #else
@@ -340,7 +346,7 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
   OSStatus err;
   playerStruct* player= (playerStruct*) priv;
   
-  //fprintf(stderr, "\n*** AQBufferCallback() [%ld]", player->id);
+  //fprintf(stderr, "\n[%ld] AQBufferCallback() [%d]", player->id, 1+(AQBuffer == player->AQBuffer2));
   
   
   if (player->destroying) {
@@ -372,7 +378,7 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
     
     AQBuffer->mAudioDataByteSize= (AQBuffer == player->AQBuffer1) ? player->AQBuffer1Length : player->AQBuffer2Length;
 
-    err= AudioQueueEnqueueBuffer(AQ, AQBuffer, 0, NULL);
+    err= AudioQueueEnqueueBuffer(player->AQ, AQBuffer, 0, NULL);
     if (err) {
       fprintf(stderr, " ERROR:AQBufferCallback AudioQueueEnqueueBuffer:[%d] ", err);
     }
@@ -382,10 +388,17 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
     
     //fprintf(stderr, "\n[%ld] CLEANUP", player->id);
     
+    err= AudioQueueStop(player->AQ, true);
+    if (err) {
+      fprintf(stderr, " ERROR:AudioQueueStop:[%d]", err);
+    }
+    
     player->playing= 0;
     
     if (player->hasCallback) {
       player->callbackIsPending= 1;
+      player->pendingJSCallback= player->JSCallback;
+      player->hasCallback= 0;
       queueStruct* theItem= (queueStruct*) calloc(1, sizeof(queueStruct));
       theItem->player= player;
       
@@ -404,14 +417,14 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
     
     tracker(-1);
     
-    err= AudioQueueStop(AQ, false);
+    err= AudioQueueStop(player->AQ, false);
     if (err) {
       fprintf(stderr, " ERROR:AudioQueueStop:[%d]", err);
     }
   }
   
   end:
-  //fflush(stderr);
+  fflush(stderr);
   return;
 }
 
@@ -696,6 +709,8 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
 
 
 
+
+
 // ===================================
 // = **** Callback into node.js **** =
 // ===================================
@@ -718,19 +733,18 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
   callbacksQueue= NULL;
   pthread_mutex_unlock(&callbacksQueue_mutex);
   
-  
   /*
     TODO 
     - ver que hay que hacer exactamente cuando cb() throws.
   */
+  
   queueStruct* next;
   //TryCatch try_catch;
   
   while (item != NULL) {
     
-    if (item->player->hasCallback) {
-      Persistent<Object> cb= item->player->JSCallback;
-      item->player->hasCallback= 0;
+    if (item->player->callbackIsPending) {
+      Persistent<Object> cb= item->player->pendingJSCallback;
       Persistent<Function>::Cast(cb)->Call(item->player->JSObject, 0, NULL);
       item->player->callbackIsPending= 0;
       cb.Dispose();

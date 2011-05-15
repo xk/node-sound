@@ -28,9 +28,6 @@ while (len--) {
 }
 
 
-var snd= require('./build/default/sound');
-
-snd.create(buffer).loop(1e6).volume(1).play(); // loop
-
+require('./build/default/sound').create(buffer).loop(1e6).volume(1).play(); // loop
 setTimeout(Date.now, 1e9); // forever
 

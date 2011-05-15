@@ -4,13 +4,6 @@
 // =  OJO DA SEGMENTATION FAULT DE VEZ EN CUANDO NO SE SABE POR QUE  =
 // ===================================================================
 
-function noise (v,i,o) {
-  o[i]= Math.floor(Math.random()*256);
-}
-
-function sin (v,i,o) {
-  o[i]= Math.floor(Math.sin(i/5)*256);
-}
 
 var Sound= require('./build/default/sound');
 var snds= [];
@@ -36,7 +29,7 @@ var bufs= [];
 
 (function loop () {
   process.stdout.write('.');
-  snds[Math.floor(snds.length*Math.random())].play();
+  snds[Math.floor(snds.length*Math.random())].loop(3).play();
   process.nextTick(loop);
 })();
 

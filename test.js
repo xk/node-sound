@@ -11,11 +11,6 @@ function noise (v,i,o) {
   o[i]= Math.floor(Math.random()*256);
 }
 
-var buffer= new Buffer(44100*4*2);
-var i= buffer.length;
-while (i--) buffer[i]= 0;
-Sound.create(buffer).loop(1e9).play();
-
 
 var i= 99; // Create this many identical sounds.
 while (i--) sounds[i]= Sound.create(bufferShort);

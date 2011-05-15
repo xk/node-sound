@@ -1,6 +1,6 @@
 // test loop() to see if it makes any glitches when playing in a loop.
 
-var buffer= new Buffer(256*256); // 1 seconds.
+var buffer= new Buffer(256*256); // enough
 var len= buffer.length;
 while (len--) buffer[len]= len%256; // saw;
 

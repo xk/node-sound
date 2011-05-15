@@ -2,7 +2,7 @@
 
 var Sound= require('./build/default/sound');
 
-var quit= setTimeout(function nop(){}, 1e9); // don't quit
+setTimeout(function nop(){}, 1e9); // don't quit
 
 var howMany= 999;
 
@@ -11,23 +11,15 @@ function cb () {
 }
 
 
-var buffer= new Buffer(44100*4);
-var i= buffer.length;
-while (i--) buffer[i]= 0;
-Sound.create(buffer).loop(1e9).play();
-
-
 var buffer= new Buffer(2048);
 var i= buffer.length;
-while (i--) buffer[i]= Math.floor(256*Math.random());
+while (i--) buffer[i]= Math.floor(256*Math.random()); // noise
 
 
 var i= howMany;
 function next () {
-  var snd= Sound.create(buffer);
+  var snd= Sound.create(buffer).play(cb);
   process.stdout.write('\n['+ snd.id+ '].play(cb)');
-  snd.play(cb);
-  snd= null;
   if (--i) setTimeout(next, Math.floor(10*Math.random()));
 };
 

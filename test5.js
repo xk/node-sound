@@ -5,8 +5,9 @@ var len= buffer.length;
 //while (len--) buffer[len]= Math.floor(Math.random()*256); // noise
 while (len--) buffer[len]= len%256; // saw
 
-var sound= require('./build/default/sound').create(buffer);
+var Sound= require('./build/default/sound');
 
+var sound= Sound.create(buffer);
 sound.volume(0).loop(1e9).play();
 
 var i= 0;

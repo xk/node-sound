@@ -1,7 +1,7 @@
 // tests proper destruction/absence of leaks when there's unreferenced sound objects that are still play()ing.
 
 function noise (v,i,o) {
-  o[i]= Math.floor(Math.random()*256);
+  o[i]= Math.floor(256*Math.random());
 }
 
 function saw (v,i,o) {
@@ -23,7 +23,7 @@ var Sound= require('./build/default/sound');
 
 (function loop () {
   process.nextTick(loop);
-  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).play();
+  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).loop(5).play();
   process.stdout.write('.');
 })();
 

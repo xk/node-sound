@@ -5,10 +5,10 @@ var Sound= require('./build/default/sound');
 var buf= new Buffer(256*256);
 var i= buf.length;
 while (i--) buf[i]= i%256;
-//[].forEach.call(b, function (v,i,o) { o[i]= Math.floor(Math.random()*256) });
+//while (i--) buf[i]= Math.floor(Math.random()*256);
 
 var snd= Sound.create(buf);
-snd.loop(1e9).play();
+snd.loop(1e9);
 
 var flipflop= 0;
 function loop () {
