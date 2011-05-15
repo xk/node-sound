@@ -7,8 +7,7 @@ while (len--) buffer[len]= len%256; // saw
 
 var Sound= require('./build/default/sound');
 
-var sound= Sound.create(buffer);
-sound.volume(0).loop(1e9).play();
+var sound= Sound.create(buffer).volume(0).loop(1e9).play();
 
 var i= 0;
 var ii= 0.25;
