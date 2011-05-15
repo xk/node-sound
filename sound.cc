@@ -612,6 +612,7 @@ v8::Handle<Value> Create (const Arguments &args) {
   
   if (err) {
     free(player);
+    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
     fprintf(stderr, "\nERROR *** Sound::create AudioQueueNewOutput:[%d]\n", err);
     fflush(stderr);
     return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueNewOutput error")));
@@ -629,6 +630,9 @@ v8::Handle<Value> Create (const Arguments &args) {
   );
   
   if (err) {
+    AudioQueueDispose (player->AQ, true);
+    free(player);
+    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
     fprintf(stderr, "\nERROR *** Sound::create AudioQueueAllocateBuffer:[%d]\n", err);
     fflush(stderr);
     return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
@@ -641,6 +645,9 @@ v8::Handle<Value> Create (const Arguments &args) {
   );
   
   if (err) {
+    AudioQueueDispose (player->AQ, true);
+    free(player);
+    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
     fprintf(stderr, "\nERROR *** Sound::create AudioQueueAllocateBuffer:[%d]\n", err);
     fflush(stderr);
     return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
@@ -656,7 +663,7 @@ v8::Handle<Value> Create (const Arguments &args) {
   fprintf(stderr, "\nERROR *** Sound::create() LINUX not implemented argghh.");
   fflush(stderr);
 
-  void* player= NULL;
+  void* player= newPlayer();
 
 #endif
   
@@ -664,13 +671,14 @@ v8::Handle<Value> Create (const Arguments &args) {
   JSObject.MakeWeak(player, destroyerCB);
   player->JSObject= JSObject;
   
+  
   JSObject->Set(id_symbol, v8::Integer::New(player->id));
   JSObject->Set(play_symbol, play_function);
   JSObject->Set(pause_symbol, pause_function);
   JSObject->Set(volume_symbol, volume_function);
   JSObject->Set(loop_symbol, loop_function);
   JSObject->Set(data_symbol, buffer);
-  JSObject->SetHiddenValue(player_symbol, v8::External::Wrap((void*) player));
+  JSObject->SetHiddenValue(player_symbol, v8::External::Wrap(player));
   
   
   if ((createdCtr % 500) == 0) {
@@ -683,6 +691,15 @@ v8::Handle<Value> Create (const Arguments &args) {
   
   return scope.Close(JSObject);
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -710,6 +727,8 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
 
 
 
+
+
 // ===================================
 // = **** Callback into node.js **** =
 // ===================================
@@ -725,6 +744,7 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
   assert(watcher == &eio_sound_async_notifier);
   assert(revents == EV_ASYNC);
   
+  queueStruct* next;
   queueStruct* item;
   // Grab the queue.
   pthread_mutex_lock(&callbacksQueue_mutex);
@@ -734,10 +754,9 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
   
   /*
     TODO 
-    - ver que hay que hacer exactamente cuando cb() throws.
+    - ver qué hay que hacer exactamente cuando cb() throws.
   */
   
-  queueStruct* next;
   //TryCatch try_catch;
   
   while (item != NULL) {
@@ -769,6 +788,7 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
 // Esto se llama una sola vez, al hacer require('sound');
 extern "C" {
   void init (v8::Handle<Object> target) {
+    
     v8::HandleScope scope;
 
     data_symbol= v8::Persistent<String>::New(v8::String::New("data"));
@@ -787,8 +807,8 @@ extern "C" {
     create_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Create)->GetFunction());
     bufferify_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Bufferify)->GetFunction());
     
-    target->Set(v8::String::New("create"), v8::Persistent<Function>::New(v8::FunctionTemplate::New(Create)->GetFunction()));
-    target->Set(v8::String::New("bufferify"), v8::Persistent<Function>::New(v8::FunctionTemplate::New(Bufferify)->GetFunction()));
+    target->Set(v8::String::New("create"), create_function);
+    target->Set(v8::String::New("bufferify"), bufferify_function);
     
     // Start async events for callbacks.
     ev_async_init(&eio_sound_async_notifier, Callback);
