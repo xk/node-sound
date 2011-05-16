@@ -1,6 +1,6 @@
-# project noname (1.0) configured on Sun May 15 14:28:42 2011 by
+# project noname (0.0.1) configured on Mon May 16 14:43:52 2011 by
 # waf 1.5.16 (abi 7, python 20601f0 on darwin)
-# using /Users/jorge/JAVASCRIPT/bin/node-waf configure
+# using /Users/jorge/JAVASCRIPT/bin/node-waf configure clean build
 #
 
 ----------------------------------------
@@ -37,7 +37,7 @@ ok
 
 ----------------------------------------
 Checking for node path 
-ok /Users/jorge/.node_libraries
+not found
 
 ----------------------------------------
 Checking for node prefix 

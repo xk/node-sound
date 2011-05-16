@@ -56,8 +56,8 @@
   
 #endif
 
-using namespace node;
-using namespace v8;
+//using namespace node;
+//using namespace v8;
 
 typedef struct queueStruct {
   playerStruct* player;
@@ -68,22 +68,24 @@ static queueStruct* callbacksQueue= NULL;
 static ev_async eio_sound_async_notifier;
 pthread_mutex_t callbacksQueue_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static Persistent<String> play_symbol;
-static Persistent<String> pause_symbol;
-static Persistent<String> data_symbol;
-static Persistent<String> volume_symbol;
-static Persistent<String> loop_symbol;
-static Persistent<String> player_symbol;
-static Persistent<String> callback_symbol;
-static Persistent<String> id_symbol;
-static Persistent<String> bufferify_symbol;
+static v8::Persistent<v8::String> play_symbol;
+static v8::Persistent<v8::String> pause_symbol;
+static v8::Persistent<v8::String> data_symbol;
+static v8::Persistent<v8::String> volume_symbol;
+static v8::Persistent<v8::String> loop_symbol;
+static v8::Persistent<v8::String> player_symbol;
+static v8::Persistent<v8::String> callback_symbol;
+static v8::Persistent<v8::String> id_symbol;
+static v8::Persistent<v8::String> bufferify_symbol;
+static v8::Persistent<v8::String> stream_symbol;
 
-static Persistent<Function> volume_function;
-static Persistent<Function> loop_function;
-static Persistent<Function> play_function;
-static Persistent<Function> pause_function;
-static Persistent<Function> create_function;
-static Persistent<Function> bufferify_function;
+static v8::Persistent<v8::Function> volume_function;
+static v8::Persistent<v8::Function> loop_function;
+static v8::Persistent<v8::Function> play_function;
+static v8::Persistent<v8::Function> pause_function;
+static v8::Persistent<v8::Function> create_function;
+static v8::Persistent<v8::Function> bufferify_function;
+static v8::Persistent<v8::Function> stream_function;
 
 static long int createdCtr= 0;
 static long int destroyedCtr= 0;
@@ -134,7 +136,7 @@ playerStruct* newPlayer () {
   playerStruct* player;
   
   player= (playerStruct*) calloc(1, sizeof(playerStruct));
-  V8::AdjustAmountOfExternalAllocatedMemory(sizeof(playerStruct));
+  v8::V8::AdjustAmountOfExternalAllocatedMemory(sizeof(playerStruct));
   
   player->id= createdCtr++;
   player->format= gFormato;
@@ -158,7 +160,7 @@ playerStruct* newPlayer () {
 // = **** Volume **** =
 // ====================
 
-v8::Handle<Value> Volume (const Arguments &args) {
+v8::Handle<v8::Value> Volume (const v8::Arguments &args) {
   
   v8::HandleScope scope;
   
@@ -202,7 +204,7 @@ v8::Handle<Value> Volume (const Arguments &args) {
 // = **** Loop **** =
 // ==================
 
-v8::Handle<Value> Loop (const Arguments &args) {
+v8::Handle<v8::Value> Loop (const v8::Arguments &args) {
   
   v8::HandleScope scope;
   
@@ -246,7 +248,7 @@ v8::Handle<Value> Loop (const Arguments &args) {
 // = **** Play **** =
 // ==================
 
-v8::Handle<Value> Play (const Arguments &args) {
+v8::Handle<v8::Value> Play (const v8::Arguments &args) {
   
   v8::HandleScope scope;
   
@@ -271,7 +273,7 @@ v8::Handle<Value> Play (const Arguments &args) {
       player->JSCallback= v8::Persistent<v8::Object>::New(args[0]->ToObject());
     }
     else {
-      return ThrowException(Exception::TypeError(String::New("Sound::Play(): The callback must be a function")));
+      return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::Play(): The callback must be a function")));
     }
   }
   
@@ -441,7 +443,7 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
 // = **** Pause **** =
 // ===================
 
-v8::Handle<Value> Pause (const Arguments &args) {
+v8::Handle<v8::Value> Pause (const v8::Arguments &args) {
   
   v8::HandleScope scope;
 
@@ -493,7 +495,7 @@ v8::Handle<Value> Pause (const Arguments &args) {
 // = **** DestroyerCB **** =
 // =========================
 
-void destroyerCB (Persistent<Value> object, void* parameter) {
+void destroyerCB (v8::Persistent<v8::Value> object, void* parameter) {
   
 #if defined (__APPLE__)
   
@@ -527,7 +529,7 @@ void destroyerCB (Persistent<Value> object, void* parameter) {
     
     //fprintf(stderr, "\n[%ld] DESTROYED", player->id);
     
-    V8::AdjustAmountOfExternalAllocatedMemory(-(2*player->bufferLength + sizeof(playerStruct)));
+    v8::V8::AdjustAmountOfExternalAllocatedMemory(-(2*player->bufferLength + sizeof(playerStruct)));
     free(player);
     object.Dispose();
     destroyedCtr++;
@@ -554,7 +556,7 @@ void destroyerCB (Persistent<Value> object, void* parameter) {
 // = **** Create **** =
 // ====================
 
-v8::Handle<Value> Create (const Arguments &args) {
+v8::Handle<v8::Value> Create (const v8::Arguments &args) {
   
   //fprintf(stderr, "\nOK *** Sound::Create() BEGIN");
   //fflush(stderr);
@@ -562,28 +564,28 @@ v8::Handle<Value> Create (const Arguments &args) {
   v8::HandleScope scope;
   
   if (args.Length() != 1) {
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer): bad number of arguments")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer): bad number of arguments")));
   }
   
-  if (!Buffer::HasInstance(args[0])) {
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer): The argument must be a Buffer() instance")));
+  if (!node::Buffer::HasInstance(args[0])) {
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer): The argument must be a Buffer() instance")));
   }
   
   //v8::Persistent<Object> buffer= v8::Persistent<Object>::New(args[0]->ToObject());
-  v8::Local<Object> buffer= args[0]->ToObject();
+  v8::Local<v8::Object> buffer= args[0]->ToObject();
   char* bufferData= node::Buffer::Data(buffer);
   size_t bufferLength= node::Buffer::Length(buffer);
   
   if (!bufferLength) {
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer): buffer has length == 0")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer): buffer has length == 0")));
   }
   
   if (bufferLength < 8) {
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer): buffer.length must be >= 8")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer): buffer.length must be >= 8")));
   }
   
   if (bufferLength % 4) {
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer): buffer.length must a multiple of 4")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer): buffer.length must a multiple of 4")));
   }
   
 #if defined (__APPLE__)
@@ -612,10 +614,10 @@ v8::Handle<Value> Create (const Arguments &args) {
   
   if (err) {
     free(player);
-    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
+    v8::V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
     fprintf(stderr, "\nERROR *** Sound::create AudioQueueNewOutput:[%d]\n", err);
     fflush(stderr);
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueNewOutput error")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer) AudioQueueNewOutput error")));
   }
   
   /*
@@ -632,10 +634,10 @@ v8::Handle<Value> Create (const Arguments &args) {
   if (err) {
     AudioQueueDispose (player->AQ, true);
     free(player);
-    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
+    v8::V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
     fprintf(stderr, "\nERROR *** Sound::create AudioQueueAllocateBuffer:[%d]\n", err);
     fflush(stderr);
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
   }
   
   err= AudioQueueAllocateBuffer (
@@ -647,13 +649,13 @@ v8::Handle<Value> Create (const Arguments &args) {
   if (err) {
     AudioQueueDispose (player->AQ, true);
     free(player);
-    V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
+    v8::V8::AdjustAmountOfExternalAllocatedMemory(-sizeof(playerStruct));
     fprintf(stderr, "\nERROR *** Sound::create AudioQueueAllocateBuffer:[%d]\n", err);
     fflush(stderr);
-    return ThrowException(Exception::TypeError(String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::create(buffer) AudioQueueAllocateBuffer error")));
   }
   
-  V8::AdjustAmountOfExternalAllocatedMemory(bufferLength);
+  v8::V8::AdjustAmountOfExternalAllocatedMemory(bufferLength);
   memcpy(player->AQBuffer1->mAudioData, bufferData, player->AQBuffer1Length);
   memcpy(player->AQBuffer2->mAudioData, (bufferData+ player->AQBuffer1Length), player->AQBuffer2Length);
   
@@ -707,13 +709,107 @@ v8::Handle<Value> Create (const Arguments &args) {
 // = **** Bufferify() **** =
 // =========================
 
-v8::Handle<Value> Bufferify (const Arguments &args) {
+v8::Handle<v8::Value> Bufferify (const v8::Arguments &args) {
+  
+  v8::HandleScope scope;
+  
+  v8::Local<v8::String> str;
+  
+  if (!args.Length() && !args[0]->IsString()) goto end;
+  
+  str= args[0]->ToString();
+  CFDataRef strChars;
+  strChars= CFDataCreate(NULL, (UInt8*) *v8::String::Utf8Value(str), str->Utf8Length());
+  
+  CFStringRef pathStr;
+  pathStr= CFStringCreateFromExternalRepresentation(
+     NULL,
+     strChars,
+     kCFStringEncodingUTF8
+  );
+  
+  CFURLRef pathURL;
+  pathURL= CFURLCreateWithFileSystemPath(NULL,                 //CFAllocatorRef allocator
+                                         pathStr,              //CFStringRef filePath,
+                                         kCFURLPOSIXPathStyle, //CFURLPathStyle pathStyle,
+                                         false                 //Boolean isDirectory
+  );
+
+  OSStatus err;
+  ExtAudioFileRef file;
+  err= ExtAudioFileOpenURL(pathURL,    //CFURLRef         inURL
+                           &file       //ExtAudioFileRef  *outExtAudioFile
+  );
+  if (err) {
+    fprintf(stderr, "\nERROR ExtAudioFileOpenURL [%d]", err);
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileOpenURL error")));
+  }
+  
+  
+  UInt32 size;
+  Boolean writable;
+  err= ExtAudioFileGetPropertyInfo(file,                                  //ExtAudioFileRef         inExtAudioFile,
+                                   kExtAudioFileProperty_FileDataFormat,  //ExtAudioFilePropertyID  inPropertyID,
+                                   &size,                                 //UInt32                  *outSize,
+                                   &writable                              //Boolean                 *outWritable
+  );
+  if (err) {
+    fprintf(stderr, "\nERROR ExtAudioFileGetPropertyInfo [%d]", err);
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileGetPropertyInfo error")));
+  }
+  
+  AudioStreamBasicDescription* p;
+  p= (AudioStreamBasicDescription*) malloc((size_t) size);
+  err= ExtAudioFileGetProperty(file,                                 //ExtAudioFileRef         inExtAudioFile,
+                               kExtAudioFileProperty_FileDataFormat, //ExtAudioFilePropertyID  inPropertyID,
+                               &size,                                //UInt32                  *ioPropertyDataSize,
+                               p                                     //void                    *outPropertyData
+  );
+  if (err) {
+    fprintf(stderr, "\nERROR ExtAudioFileGetProperty [%d]", err);
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileGetProperty error")));
+  }
+  
+  fprintf(stderr, "\nmSampleRate: %lf", p->mSampleRate);
+  fprintf(stderr, "\nmFormatID: %d", p->mFormatID);
+  fprintf(stderr, "\nmFormatFlags: %d", p->mFormatFlags);
+  fprintf(stderr, "\nmBytesPerPacket: %d", p->mBytesPerPacket);
+  fprintf(stderr, "\nmFramesPerPacket: %d", p->mFramesPerPacket);
+  fprintf(stderr, "\nmBytesPerFrame: %d", p->mBytesPerFrame);
+  fprintf(stderr, "\nmChannelsPerFrame: %d", p->mChannelsPerFrame);
+  fprintf(stderr, "\nmBitsPerChannel: %d", p->mBitsPerChannel);
+  fprintf(stderr, "\nmReserved: %d\n", p->mReserved);
+  
+  
+  end:
+  //fprintf(stderr, "\nOK *** Bufferify\n");
+  fflush(stderr);
+
+  return v8::Undefined();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// ======================
+// = **** Stream() **** =
+// ======================
+
+v8::Handle<v8::Value> Stream (const v8::Arguments &args) {
   
   v8::HandleScope scope;
   
   
   end:
-  //fprintf(stderr, "\nOK *** Bufferify\n");
+  //fprintf(stderr, "\nOK *** Stream\n");
   //fflush(stderr);
 
   return v8::Undefined();
@@ -739,7 +835,7 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
   //fprintf(stderr, "*** JSCallback");
   //fflush(stderr);
   
-  HandleScope scope;
+  v8::HandleScope scope;
 
   assert(watcher == &eio_sound_async_notifier);
   assert(revents == EV_ASYNC);
@@ -762,8 +858,8 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
   while (item != NULL) {
     
     if (item->player->callbackIsPending) {
-      Persistent<Object> cb= item->player->pendingJSCallback;
-      Persistent<Function>::Cast(cb)->Call(item->player->JSObject, 0, NULL);
+      v8::Persistent<v8::Object> cb= item->player->pendingJSCallback;
+      v8::Persistent<v8::Function>::Cast(cb)->Call(item->player->JSObject, 0, NULL);
       item->player->callbackIsPending= 0;
       cb.Dispose();
       //if (try_catch.HasCaught()) FatalException(try_catch);
@@ -787,28 +883,31 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
 
 // Esto se llama una sola vez, al hacer require('sound');
 extern "C" {
-  void init (v8::Handle<Object> target) {
+  void init (v8::Handle<v8::Object> target) {
     
     v8::HandleScope scope;
 
-    data_symbol= v8::Persistent<String>::New(v8::String::New("data"));
-    play_symbol= v8::Persistent<String>::New(v8::String::New("play"));
-    id_symbol= v8::Persistent<String>::New(v8::String::New("id"));
-    pause_symbol= v8::Persistent<String>::New(v8::String::New("pause"));
-    volume_symbol= v8::Persistent<String>::New(v8::String::New("volume"));
-    loop_symbol= v8::Persistent<String>::New(v8::String::New("loop"));
-    player_symbol= v8::Persistent<String>::New(v8::String::New("_player"));
-    bufferify_symbol= v8::Persistent<String>::New(v8::String::New("bufferify"));
+    data_symbol= v8::Persistent<v8::String>::New(v8::String::New("data"));
+    play_symbol= v8::Persistent<v8::String>::New(v8::String::New("play"));
+    id_symbol= v8::Persistent<v8::String>::New(v8::String::New("id"));
+    pause_symbol= v8::Persistent<v8::String>::New(v8::String::New("pause"));
+    volume_symbol= v8::Persistent<v8::String>::New(v8::String::New("volume"));
+    loop_symbol= v8::Persistent<v8::String>::New(v8::String::New("loop"));
+    player_symbol= v8::Persistent<v8::String>::New(v8::String::New("_player"));
+    bufferify_symbol= v8::Persistent<v8::String>::New(v8::String::New("bufferify"));
+    stream_symbol= v8::Persistent<v8::String>::New(v8::String::New("stream"));
     
-    volume_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Volume)->GetFunction());
-    loop_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Loop)->GetFunction());
-    play_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Play)->GetFunction());
-    pause_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Pause)->GetFunction());
-    create_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Create)->GetFunction());
-    bufferify_function= v8::Persistent<Function>::New(v8::FunctionTemplate::New(Bufferify)->GetFunction());
+    volume_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Volume)->GetFunction());
+    loop_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Loop)->GetFunction());
+    play_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Play)->GetFunction());
+    pause_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Pause)->GetFunction());
+    create_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Create)->GetFunction());
+    bufferify_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Bufferify)->GetFunction());
+    stream_function= v8::Persistent<v8::Function>::New(v8::FunctionTemplate::New(Stream)->GetFunction());
     
     target->Set(v8::String::New("create"), create_function);
     target->Set(v8::String::New("bufferify"), bufferify_function);
+    target->Set(v8::String::New("stream"), stream_function);
     
     // Start async events for callbacks.
     ev_async_init(&eio_sound_async_notifier, Callback);
