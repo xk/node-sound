@@ -722,49 +722,30 @@ v8::Handle<v8::Value> Bufferify (const v8::Arguments &args) {
   strChars= CFDataCreate(NULL, (UInt8*) *v8::String::Utf8Value(str), str->Utf8Length());
   
   CFStringRef pathStr;
-  pathStr= CFStringCreateFromExternalRepresentation(
-     NULL,
-     strChars,
-     kCFStringEncodingUTF8
-  );
+  pathStr= CFStringCreateFromExternalRepresentation(NULL, strChars, kCFStringEncodingUTF8);
   
   CFURLRef pathURL;
-  pathURL= CFURLCreateWithFileSystemPath(NULL,                 //CFAllocatorRef allocator
-                                         pathStr,              //CFStringRef filePath,
-                                         kCFURLPOSIXPathStyle, //CFURLPathStyle pathStyle,
-                                         false                 //Boolean isDirectory
-  );
-
+  pathURL= CFURLCreateWithFileSystemPath(NULL, pathStr, kCFURLPOSIXPathStyle, false);
+  
   OSStatus err;
   ExtAudioFileRef file;
-  err= ExtAudioFileOpenURL(pathURL,    //CFURLRef         inURL
-                           &file       //ExtAudioFileRef  *outExtAudioFile
-  );
+  err= ExtAudioFileOpenURL(pathURL, &file);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileOpenURL [%d]", err);
     return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileOpenURL error")));
   }
   
-  
   UInt32 size;
   Boolean writable;
-  err= ExtAudioFileGetPropertyInfo(file,                                  //ExtAudioFileRef         inExtAudioFile,
-                                   kExtAudioFileProperty_FileDataFormat,  //ExtAudioFilePropertyID  inPropertyID,
-                                   &size,                                 //UInt32                  *outSize,
-                                   &writable                              //Boolean                 *outWritable
-  );
+  err= ExtAudioFileGetPropertyInfo(file, kExtAudioFileProperty_FileDataFormat, &size, &writable);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileGetPropertyInfo [%d]", err);
     return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileGetPropertyInfo error")));
   }
   
   AudioStreamBasicDescription* p;
-  p= (AudioStreamBasicDescription*) malloc((size_t) size);
-  err= ExtAudioFileGetProperty(file,                                 //ExtAudioFileRef         inExtAudioFile,
-                               kExtAudioFileProperty_FileDataFormat, //ExtAudioFilePropertyID  inPropertyID,
-                               &size,                                //UInt32                  *ioPropertyDataSize,
-                               p                                     //void                    *outPropertyData
-  );
+  p= (AudioStreamBasicDescription*) malloc(size);
+  err= ExtAudioFileGetProperty(file, kExtAudioFileProperty_FileDataFormat, &size, p);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileGetProperty [%d]", err);
     return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileGetProperty error")));
@@ -778,11 +759,12 @@ v8::Handle<v8::Value> Bufferify (const v8::Arguments &args) {
   fprintf(stderr, "\nmBytesPerFrame: %d", p->mBytesPerFrame);
   fprintf(stderr, "\nmChannelsPerFrame: %d", p->mChannelsPerFrame);
   fprintf(stderr, "\nmBitsPerChannel: %d", p->mBitsPerChannel);
-  fprintf(stderr, "\nmReserved: %d\n", p->mReserved);
+  fprintf(stderr, "\nmReserved: %d", p->mReserved);
   
   
   end:
   //fprintf(stderr, "\nOK *** Bufferify\n");
+  fprintf(stderr, "\n");
   fflush(stderr);
 
   return v8::Undefined();
