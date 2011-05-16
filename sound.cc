@@ -41,13 +41,15 @@
     UInt32 AQBuffer2Length;
     AudioQueueBufferRef AQBuffer1;
     AudioQueueBufferRef AQBuffer2;
-    AudioStreamBasicDescription format;
+    AudioStreamBasicDescription* format;
     
     int hasCallback;
     int callbackIsPending;
     v8::Persistent<v8::Object> pendingJSCallback;
     v8::Persistent<v8::Object> JSObject;
     v8::Persistent<v8::Object> JSCallback;
+    
+    ExtAudioFileRef inputAudioFile;
     
   } playerStruct;
   
@@ -139,7 +141,7 @@ playerStruct* newPlayer () {
   v8::V8::AdjustAmountOfExternalAllocatedMemory(sizeof(playerStruct));
   
   player->id= createdCtr++;
-  player->format= gFormato;
+  player->format= &gFormato;
   player->loop= 0;
   player->paused= 0;
   player->playing= 0;
@@ -603,7 +605,7 @@ v8::Handle<v8::Value> Create (const v8::Arguments &args) {
   
   
   err= AudioQueueNewOutput(
-    &player->format,         // const AudioStreamBasicDescription   *inFormat
+    player->format,         // const AudioStreamBasicDescription   *inFormat
     AQBufferCallback,        // AudioQueueOutputCallback            inCallbackProc
     player,                  // void                                *inUserData
     NULL,                    // CFRunLoopRef                        inCallbackRunLoop
@@ -728,8 +730,8 @@ v8::Handle<v8::Value> Bufferify (const v8::Arguments &args) {
   pathURL= CFURLCreateWithFileSystemPath(NULL, pathStr, kCFURLPOSIXPathStyle, false);
   
   OSStatus err;
-  ExtAudioFileRef file;
-  err= ExtAudioFileOpenURL(pathURL, &file);
+  ExtAudioFileRef inputAudioFile;
+  err= ExtAudioFileOpenURL(pathURL, &inputAudioFile);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileOpenURL [%d]", err);
     return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileOpenURL error")));
@@ -737,30 +739,63 @@ v8::Handle<v8::Value> Bufferify (const v8::Arguments &args) {
   
   UInt32 size;
   Boolean writable;
-  err= ExtAudioFileGetPropertyInfo(file, kExtAudioFileProperty_FileDataFormat, &size, &writable);
+  err= ExtAudioFileGetPropertyInfo(inputAudioFile, kExtAudioFileProperty_FileDataFormat, &size, &writable);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileGetPropertyInfo [%d]", err);
     return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileGetPropertyInfo error")));
   }
   
-  AudioStreamBasicDescription* p;
-  p= (AudioStreamBasicDescription*) malloc(size);
-  err= ExtAudioFileGetProperty(file, kExtAudioFileProperty_FileDataFormat, &size, p);
+  AudioStreamBasicDescription* inputFormat;
+  inputFormat= (AudioStreamBasicDescription*) malloc(size);
+  err= ExtAudioFileGetProperty(inputAudioFile, kExtAudioFileProperty_FileDataFormat, &size, inputFormat);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileGetProperty [%d]", err);
     return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileGetProperty error")));
   }
   
-  fprintf(stderr, "\nmSampleRate: %lf", p->mSampleRate);
-  fprintf(stderr, "\nmFormatID: %d", p->mFormatID);
-  fprintf(stderr, "\nmFormatFlags: %d", p->mFormatFlags);
-  fprintf(stderr, "\nmBytesPerPacket: %d", p->mBytesPerPacket);
-  fprintf(stderr, "\nmFramesPerPacket: %d", p->mFramesPerPacket);
-  fprintf(stderr, "\nmBytesPerFrame: %d", p->mBytesPerFrame);
-  fprintf(stderr, "\nmChannelsPerFrame: %d", p->mChannelsPerFrame);
-  fprintf(stderr, "\nmBitsPerChannel: %d", p->mBitsPerChannel);
-  fprintf(stderr, "\nmReserved: %d", p->mReserved);
+  fprintf(stderr, "\nmSampleRate: %lf", inputFormat->mSampleRate);
+  fprintf(stderr, "\nmFormatID: %d", inputFormat->mFormatID);
+  fprintf(stderr, "\nmFormatFlags: %d", inputFormat->mFormatFlags);
+  fprintf(stderr, "\nmBytesPerPacket: %d", inputFormat->mBytesPerPacket);
+  fprintf(stderr, "\nmFramesPerPacket: %d", inputFormat->mFramesPerPacket);
+  fprintf(stderr, "\nmBytesPerFrame: %d", inputFormat->mBytesPerFrame);
+  fprintf(stderr, "\nmChannelsPerFrame: %d", inputFormat->mChannelsPerFrame);
+  fprintf(stderr, "\nmBitsPerChannel: %d", inputFormat->mBitsPerChannel);
+  fprintf(stderr, "\nmReserved: %d", inputFormat->mReserved);
   
+  
+  err= ExtAudioFileSetProperty(inputAudioFile, kExtAudioFileProperty_ClientDataFormat, size, &gFormato);
+  if (err) {
+    fprintf(stderr, "\nERROR ExtAudioFileSetProperty [%d]", err);
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileSetProperty error")));
+  }
+  
+  long int bufSize;
+  bufSize= 64*1024*1024;
+  UInt32 frames;
+  frames= bufSize/4;
+  AudioBufferList bufferList;
+  bufferList.mNumberBuffers= 1;
+  bufferList.mBuffers[0].mNumberChannels= 2;
+  bufferList.mBuffers[0].mDataByteSize= bufSize;
+  bufferList.mBuffers[0].mData= malloc(bufSize);
+  
+  
+  err= ExtAudioFileRead (inputAudioFile, &frames, &bufferList);
+  if (err) {
+    fprintf(stderr, "\nERROR ExtAudioFileRead [%d]", err);
+    return v8::ThrowException(v8::Exception::TypeError(v8::String::New("Sound::bufferify(path) ExtAudioFileRead error")));
+  }
+  
+  fprintf(stderr, "\nSe han convertido %d frames", frames);
+  
+  node::Buffer* nodeBuffer;
+  nodeBuffer= node::Buffer::New((char*) bufferList.mBuffers[0].mData, frames*4);
+  free(bufferList.mBuffers[0].mData);
+  free(inputFormat);
+  err= ExtAudioFileDispose(inputAudioFile);
+  
+  return scope.Close(nodeBuffer->handle_);
   
   end:
   //fprintf(stderr, "\nOK *** Bufferify\n");
@@ -915,7 +950,7 @@ extern "C" {
     OSStatus err;
     fondoSnd= newPlayer();
     err= AudioQueueNewOutput(
-      &fondoSnd->format,         // const AudioStreamBasicDescription   *inFormat
+      fondoSnd->format,         // const AudioStreamBasicDescription   *inFormat
       AQBufferCallback,          // AudioQueueOutputCallback            inCallbackProc
       fondoSnd,                  // void                                *inUserData
       NULL,                      // CFRunLoopRef                        inCallbackRunLoop
