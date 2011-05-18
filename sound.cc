@@ -282,7 +282,6 @@ v8::Handle<Value> Volume (const Arguments &args) {
 #endif
 
 
-  end:
   return scope.Close(args.This());
 }
 
@@ -324,8 +323,6 @@ v8::Handle<Value> Loop (const Arguments &args) {
   
 #endif
 
-
-  end:
   return scope.Close(args.This());
 }
 
@@ -1035,8 +1032,6 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
   job->JSCallback= v8::Persistent<v8::Object>::New(args[1]->ToObject());
   
   pthread_create(&job->renderThread, NULL, renderAsync, job);
-  
-  end:
   
   return Undefined();
 }
