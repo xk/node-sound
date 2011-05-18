@@ -72,6 +72,7 @@ typedef struct bufferStruct {
 #define kPlayCallbackQueueItemType 1
 #define kRenderCallbackQueueItemType 2
 #define kBufferListQueueItemType 3
+#define kRenderJobsListQueueItemType 4
 typedef struct queueStruct {
   void* item;
   queueStruct* next;
@@ -79,8 +80,10 @@ typedef struct queueStruct {
   int type;
 } queueStruct;
 static queueStruct* callbacksQueue= NULL;
+static queueStruct* renderJobsQueue= NULL;
 static ev_async eio_sound_async_notifier;
 pthread_mutex_t callbacksQueue_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t renderJobsQueue_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct renderJob {
   char* str;
@@ -88,8 +91,8 @@ typedef struct renderJob {
   queueStruct* qHead;
   ssize_t bytesRead;
   v8::Persistent<v8::Object> JSCallback;
-  pthread_t renderThread;
 } renderJob;
+int gRenderingNow;
 
 static v8::Persistent<String> volume_symbol;
 static v8::Persistent<String> loop_symbol;
@@ -139,9 +142,10 @@ queueStruct* newQueueItem (void* item, int type, queueStruct* qHead) {
 // = destroyQueueItem() =
 // ======================
 
-queueStruct* destroyQueueItem (queueStruct* item) {
-  queueStruct* next= item->next;
-  free(item);
+queueStruct* destroyQueueItem (queueStruct* qitem) {
+  queueStruct* next= qitem->next;
+  if (next != NULL) next->last= qitem->last;
+  free(qitem);
   return next;
 }
 
@@ -978,21 +982,36 @@ v8::Handle<Value> BufferifySync (const Arguments &args) {
 
 
 
-// =================
-// = renderAsync() =
-// =================
+// ==================
+// = renderThread() =
+// ==================
 
-static void* renderAsync (void* ptr) {
+static void* renderThread (void* ptr) {
   
-  renderJob* job= (renderJob*) ptr;
-  renderSound(job);
-  queueStruct* qitem= newQueueItem(job, kRenderCallbackQueueItemType, NULL);
+  int RUN;
+  renderJob* job;
+  queueStruct* qitem;
   
-  pthread_mutex_lock(&callbacksQueue_mutex);
-  if (callbacksQueue == NULL) callbacksQueue= qitem;
-  else callbacksQueue->last->next= qitem;
-  callbacksQueue->last= qitem;
-  pthread_mutex_unlock(&callbacksQueue_mutex);
+  do {
+    job= (renderJob*) renderJobsQueue->item;
+  
+    renderSound(job);
+    qitem= newQueueItem(job, kRenderCallbackQueueItemType, NULL);
+  
+    pthread_mutex_lock(&callbacksQueue_mutex);
+      if (callbacksQueue == NULL) callbacksQueue= qitem;
+      else callbacksQueue->last->next= qitem;
+      callbacksQueue->last= qitem;
+    pthread_mutex_unlock(&callbacksQueue_mutex);
+  
+  
+    RUN= 0;
+    pthread_mutex_lock(&renderJobsQueue_mutex);
+      renderJobsQueue= destroyQueueItem(renderJobsQueue);
+      RUN= renderJobsQueue != NULL;
+    pthread_mutex_unlock(&renderJobsQueue_mutex);
+    
+  } while (RUN);
   
   ev_async_send(EV_DEFAULT_UC_ &eio_sound_async_notifier);
   
@@ -1015,8 +1034,11 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
   
   HandleScope scope;
   
+  int RUN;
   renderJob* job;
+  pthread_t thread;
   Local<String> str;
+  queueStruct* qitem;
   
   if ((args.Length() != 2) || (!(args[0]->IsString() && args[1]->IsFunction()))) {
     return ThrowException(Exception::TypeError(String::New("Sound::bufferify(): bad arguments")));
@@ -1031,7 +1053,21 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
   job->qHead= NULL;
   job->JSCallback= v8::Persistent<v8::Object>::New(args[1]->ToObject());
   
-  pthread_create(&job->renderThread, NULL, renderAsync, job);
+  // Grab the queue.
+  qitem= newQueueItem(job, kRenderJobsListQueueItemType, NULL);
+  pthread_mutex_lock(&renderJobsQueue_mutex);
+    if (renderJobsQueue == NULL) {
+      RUN= 1;
+      renderJobsQueue= qitem;
+    }
+    else {
+      RUN= 0;
+      renderJobsQueue->last->next= qitem;
+    }
+    renderJobsQueue->last= qitem;
+  pthread_mutex_unlock(&renderJobsQueue_mutex);
+  
+  if (RUN) pthread_create(&thread, NULL, renderThread, NULL);
   
   return Undefined();
 }

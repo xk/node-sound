@@ -1,13 +1,7 @@
-// test for multiple async bufferify()s in parallel in a loop to detect leaks and other problems.
-
-// ==================================
-// = OOPS, SEGFAULTS EVERY TIME !!! =
-// ==================================
-
-// GRRR, Apple dice: (ExtAudioFileRead) This function works only on a single thread. If you want your application to read an audio file on multiple threads, use Audio File Services instead (en vez de *Extended* Audio File Services). :-(
+// test for multiple async bufferify()s IN PARALLEL in a loop to detect leaks and other problems.
 
 var Sound= require('./build/default/sound');
-var sounds= ['sound.wav', 'sound.aif', 'sound.au', 'sound.m4a', 'sound.mp3', 'Sous La Pluie.mp3', 'error.file', 'sound.cc'];
+var sounds= ['sound.wav', 'sound.aif', 'sound.au', 'sound.m4a', 'sound.mp3'];
 
 var ctr= 0;
 var all= sounds.length;

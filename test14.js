@@ -1,26 +1,27 @@
-// test for async bufferify()s in series in a loop to detect leaks and other problems.
+// test for async bufferify()s IN SERIES in a loop to detect leaks and other problems.
 
 var Sound= require('./build/default/sound');
-var sounds= ['Sous La Pluie.mp3', 'sound.wav', 'sound.aif', 'sound.mp3', 'sound.m4a', 'error.file'];
+var sounds= ['sound.wav', 'sound.aif', 'sound.au', 'sound.mp3', 'sound.m4a'];
 
 
 var ctr= 0;
 var i= sounds.length;
 function next () {
   if (--i<0) i= sounds.length-1;
-  Sound.bufferify(sounds[i], cb.bind(sounds[i]));
+  var path= sounds[i];
+  Sound.bufferify(path, cb.bind(path));
 }
 
 
 function cb (err, buffer) {
   var path= ''+ this;
-  var ctrStr= '\n['+ (ctr++)+ '] *** ';
+  process.stdout.write('\n['+ (ctr++)+ '] *** -> ');
   
   if (err) {
-    process.stdout.write(ctrStr+ 'ERROR -> '+ path);
+    process.stdout.write('ERROR -> '+ path);
   }
   else {
-    process.stdout.write(ctrStr+ 'OK    -> '+ path);
+    process.stdout.write('OK    -> '+ path);
   }
   
   next();
