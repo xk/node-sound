@@ -23,7 +23,10 @@ var Sound= require('./build/default/sound');
 
 (function loop () {
   process.nextTick(loop);
-  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).loop(5).play();
+  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).loop(2).play();
+  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).loop(2).play();
+  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).loop(2).play();
+  Sound.create(buffers[Math.floor(buffers.length*Math.random())]).loop(2).play();
   process.stdout.write('.');
 })();
 

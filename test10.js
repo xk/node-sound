@@ -4,7 +4,7 @@ var Sound= require('./build/default/sound');
 
 setTimeout(function nop(){}, 1e9); // don't quit
 
-var howMany= 999;
+var howMany= 3e3;
 
 function cb () {
   process.stdout.write('\n['+ this.id+ '].callback');

@@ -12,7 +12,7 @@ var sound= Sound.create(buffer).volume(0).loop(1e9).play();
 var i= 0;
 var ii= 0.25;
 (function loop () {
-  setTimeout(loop, 10);
+  setTimeout(loop, 7);
   i+= ii;
   if (i<0) {
     ii= 0.25;
