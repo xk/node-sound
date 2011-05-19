@@ -74,10 +74,10 @@ typedef struct bufferStruct {
 #define kBufferListQueueItemType 3
 #define kRenderJobsListQueueItemType 4
 typedef struct queueStruct {
+  int type;
   void* item;
   queueStruct* next;
   queueStruct* last;
-  int type;
 } queueStruct;
 static queueStruct* callbacksQueue= NULL;
 static queueStruct* renderJobsQueue= NULL;
@@ -88,8 +88,8 @@ pthread_mutex_t renderJobsQueue_mutex = PTHREAD_MUTEX_INITIALIZER;
 typedef struct renderJob {
   char* str;
   ssize_t strLen;
-  queueStruct* qHead;
   ssize_t bytesRead;
+  queueStruct* qHead;
   v8::Persistent<v8::Object> JSCallback;
 } renderJob;
 static pthread_t theRenderThread;
@@ -763,9 +763,9 @@ v8::Handle<Value> Create (const Arguments &args) {
   
   JSObject->Set(id_symbol, Integer::New(player->id));
   JSObject->Set(play_symbol, play_function);
+  JSObject->Set(loop_symbol, loop_function);
   JSObject->Set(pause_symbol, pause_function);
   JSObject->Set(volume_symbol, volume_function);
-  JSObject->Set(loop_symbol, loop_function);
   JSObject->Set(data_symbol, buffer);
   JSObject->SetHiddenValue(hiddenPlayerPtr_symbol, External::Wrap(player));
   
@@ -790,22 +790,22 @@ v8::Handle<Value> Create (const Arguments &args) {
 
 void renderSound (renderJob* job) {
   
-  queueStruct* bufferQItem;
-  job->qHead= bufferQItem= NULL;
-  job->bytesRead= 0;
-  
 #if defined (__APPLE__)
-  CFDataRef strChars;
-  strChars= CFDataCreate(NULL, (UInt8*) job->str, job->strLen);
-  
-  CFStringRef pathStr;
-  pathStr= CFStringCreateFromExternalRepresentation(NULL, strChars, kCFStringEncodingUTF8);
-  
-  CFURLRef pathURL;
-  pathURL= CFURLCreateWithFileSystemPath(NULL, pathStr, kCFURLPOSIXPathStyle, false);
   
   OSStatus err;
+  CFURLRef pathURL;
+  job->bytesRead= 0;
+  CFDataRef strChars;
+  CFStringRef pathStr;
+  queueStruct* bufferQItem;
+  job->qHead= bufferQItem= NULL;
   ExtAudioFileRef inputAudioFile;
+  
+  strChars= CFDataCreate(NULL, (UInt8*) job->str, job->strLen);
+  pathStr= CFStringCreateFromExternalRepresentation(NULL, strChars, kCFStringEncodingUTF8);
+  //pathURL= CFURLCreateWithString (NULL, pathStr, NULL);
+  pathURL= CFURLCreateWithFileSystemPath(NULL, pathStr, kCFURLPOSIXPathStyle, false);
+  
   err= ExtAudioFileOpenURL(pathURL, &inputAudioFile);
   if (err) {
     fprintf(stderr, "\nERROR ExtAudioFileOpenURL [%d]", err);
@@ -1159,6 +1159,8 @@ v8::Handle<Value> Stream (const Arguments &args) {
   
   HandleScope scope;
   
+  fprintf(stderr, "\nERROR *** Sound::Stream() Not yet.");
+  
   return Undefined();
 }
 
@@ -1189,9 +1191,9 @@ extern "C" {
     pause_function= v8::Persistent<Function>::New(FunctionTemplate::New(Pause)->GetFunction());
     
     target->Set(String::New("create"), v8::Persistent<Function>::New(FunctionTemplate::New(Create)->GetFunction()));
+    target->Set(String::New("stream"), v8::Persistent<Function>::New(FunctionTemplate::New(Stream)->GetFunction()));
     target->Set(String::New("bufferify"), v8::Persistent<Function>::New(FunctionTemplate::New(Bufferify)->GetFunction()));
     target->Set(String::New("bufferifySync"), v8::Persistent<Function>::New(FunctionTemplate::New(BufferifySync)->GetFunction()));
-    target->Set(String::New("stream"), v8::Persistent<Function>::New(FunctionTemplate::New(Stream)->GetFunction()));
     
     // Start async events for callbacks.
     ev_async_init(&eio_sound_async_notifier, Callback);

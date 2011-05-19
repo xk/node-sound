@@ -1,15 +1,15 @@
-# project noname (0.0.1) configured on Thu May 19 09:27:52 2011 by
+# project noname (0.0.1) configured on Thu May 19 21:59:03 2011 by
 # waf 1.5.16 (abi 7, python 20601f0 on darwin)
 # using /Users/jorge/JAVASCRIPT/bin/node-waf configure clean build
 #
 
 ----------------------------------------
 Setting srcdir to
-/Users/jorge/JAVASCRIPT/node_sound
+/Users/jorge/JAVASCRIPT/node-sound
 
 ----------------------------------------
 Setting blddir to
-/Users/jorge/JAVASCRIPT/node_sound/build
+/Users/jorge/JAVASCRIPT/node-sound/build
 
 ----------------------------------------
 Checking for program g++ or c++
