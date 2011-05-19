@@ -22,7 +22,7 @@ function cb (err, buffer) {
     process.stdout.write(ctrStr+ 'ERROR -> '+ path);
   }
   else {
-    process.stdout.write(ctrStr+ 'OK    -> '+ path);
+    process.stdout.write(ctrStr+ 'OK    -> '+ path+ ' -> buffer.length:'+ buffer.length);
   }
   
   if (sounds.push(path) === all) go();

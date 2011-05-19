@@ -92,7 +92,7 @@ typedef struct renderJob {
   ssize_t bytesRead;
   v8::Persistent<v8::Object> JSCallback;
 } renderJob;
-int gRenderingNow;
+static pthread_t theRenderThread;
 
 static v8::Persistent<String> volume_symbol;
 static v8::Persistent<String> loop_symbol;
@@ -163,7 +163,6 @@ bufferStruct* newBuffer (ssize_t size) {
   nuBuffer->buffer= malloc(size);
   nuBuffer->used= 0;
   nuBuffer->size= size;
-  V8::AdjustAmountOfExternalAllocatedMemory((int) (size + sizeof(bufferStruct)));
   return nuBuffer;
 }
 
@@ -176,7 +175,6 @@ bufferStruct* newBuffer (ssize_t size) {
 // ===================
 
 void destroyBuffer (bufferStruct* buffer) {
-  V8::AdjustAmountOfExternalAllocatedMemory((int) -(buffer->size + sizeof(bufferStruct)));
   free(buffer->buffer);
   free(buffer);
 }
@@ -502,7 +500,7 @@ void AQBufferCallback (void* priv, AudioQueueRef AQ, AudioQueueBufferRef AQBuffe
       callbacksQueue->last= theItem;
       pthread_mutex_unlock(&callbacksQueue_mutex);
       
-      ev_async_send(EV_DEFAULT_UC_ &eio_sound_async_notifier);
+      if (!ev_async_pending(&eio_sound_async_notifier)) ev_async_send(EV_DEFAULT_UC_ &eio_sound_async_notifier);
     }
   }
   else {
@@ -986,7 +984,7 @@ v8::Handle<Value> BufferifySync (const Arguments &args) {
 // = renderThread() =
 // ==================
 
-static void* renderThread (void* ptr) {
+void* renderThread (void* ptr) {
   
   int RUN;
   renderJob* job;
@@ -1004,6 +1002,7 @@ static void* renderThread (void* ptr) {
       callbacksQueue->last= qitem;
     pthread_mutex_unlock(&callbacksQueue_mutex);
   
+    if (!ev_async_pending(&eio_sound_async_notifier)) ev_async_send(EV_DEFAULT_UC_ &eio_sound_async_notifier);
   
     RUN= 0;
     pthread_mutex_lock(&renderJobsQueue_mutex);
@@ -1012,8 +1011,6 @@ static void* renderThread (void* ptr) {
     pthread_mutex_unlock(&renderJobsQueue_mutex);
     
   } while (RUN);
-  
-  ev_async_send(EV_DEFAULT_UC_ &eio_sound_async_notifier);
   
   return NULL;
 }
@@ -1036,7 +1033,6 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
   
   int RUN;
   renderJob* job;
-  pthread_t thread;
   Local<String> str;
   queueStruct* qitem;
   
@@ -1067,7 +1063,7 @@ v8::Handle<Value> Bufferify (const Arguments &args) {
     renderJobsQueue->last= qitem;
   pthread_mutex_unlock(&renderJobsQueue_mutex);
   
-  if (RUN) pthread_create(&thread, NULL, renderThread, NULL);
+  if (RUN) pthread_create(&theRenderThread, NULL, renderThread, NULL);
   
   return Undefined();
 }
@@ -1098,12 +1094,12 @@ static void Callback (EV_P_ ev_async *watcher, int revents) {
   assert(revents == EV_ASYNC);
   
   renderJob* job;
+  queueStruct* qitem;
   playerStruct* player;
   Local<Value> argv[2];
   v8::Persistent<v8::Object> cb;
   Local<v8::Object> mayBeBuffer;
   
-  queueStruct* qitem;
   // Grab the queue.
   pthread_mutex_lock(&callbacksQueue_mutex);
   qitem= callbacksQueue;

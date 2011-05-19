@@ -21,7 +21,7 @@ function cb (err, buffer) {
     process.stdout.write('ERROR -> '+ path);
   }
   else {
-    process.stdout.write('OK    -> '+ path);
+    process.stdout.write('OK    -> '+ path+ ' -> buffer.length:'+ buffer.length);
   }
   
   next();
