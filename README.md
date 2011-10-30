@@ -2,17 +2,11 @@
 
 ##Instalar
 
-**NOTA: Sólo funciona con node v0.3 o mayor**
+**NOTA: Sólo funciona con node >= v0.3 y <= v0.5.0**
 
-**2011-29-10 -> NOTA: Sólo funciona con node v0.5.0 o menor**
+**You need node >= v0.3 and <= v0.5.0 to run this program**
 
-**2011-29-10 -> NOTA: no va con node > v0.5.0, por ejemplo no va con v0.5.11**
-
-**You need node v0.3 or higher to run this program**
-
-**2011-29-10 -> You need node v0.5.0 or *lower* to run this program**
-
-**2011-29-10 -> It does *not* work with node > v0.5.0, e.g. 0.5.11**
+**2011-29-10 -> It does NOT work with node 0.5.11**
 
 Node-sound es un módulo nativo para node.js. Nativo significa fundamentalmente dos cosas: que está escrito en C y que para poder usarlo hay que compilarlo primero.
 
