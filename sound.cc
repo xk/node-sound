@@ -57,11 +57,12 @@
     v8::Persistent<v8::Object> JSCallback;
   } playerStruct;
   
+#if defined (__APPLE__)
   static AudioStreamBasicDescription gFormato;
-  static playerStruct* fondoSnd;
-  
   typedef Boolean macBoolean;
+#endif
 
+  static playerStruct* fondoSnd;
 
 using namespace node;
 using namespace v8;
