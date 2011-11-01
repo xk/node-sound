@@ -23,11 +23,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 #if defined (__APPLE__)
   #include <AudioToolbox/AudioToolbox.h>
   #include <CoreFoundation/CoreFoundation.h>
-  
+#endif
+
+
   typedef struct playerStruct {
     
     int paused;
@@ -37,28 +40,28 @@
     unsigned long loop;
     ssize_t bufferLength;
     
+#if defined (__APPLE__)
     AudioQueueRef AQ;
     UInt32 AQBuffer1Length;
     UInt32 AQBuffer2Length;
     AudioQueueBufferRef AQBuffer1;
     AudioQueueBufferRef AQBuffer2;
     AudioStreamBasicDescription* format;
-    
+    ExtAudioFileRef inputAudioFile;
+#endif
+
     int hasCallback;
     int callbackIsPending;
     v8::Persistent<v8::Object> pendingJSCallback;
     v8::Persistent<v8::Object> JSObject;
     v8::Persistent<v8::Object> JSCallback;
-    
-    ExtAudioFileRef inputAudioFile;
-    
   } playerStruct;
   
   static AudioStreamBasicDescription gFormato;
   static playerStruct* fondoSnd;
   
   typedef Boolean macBoolean;
-#endif
+
 
 using namespace node;
 using namespace v8;
@@ -221,6 +224,7 @@ void tracker (int i) {
 // ===============
 // = newPlayer() =
 // ===============
+
 
 playerStruct* newPlayer () {
   playerStruct* player;
