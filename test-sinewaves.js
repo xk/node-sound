@@ -46,10 +46,10 @@ var DONE= 0;
 var Sound= require('./build/default/sound');
 
 var musiquilla= [];
-var i= 10;
+var i= 20;
 while (i--) {
-  var f= 441+ (1e3* Math.random());
-  var t= 0.1+ (Math.random()/5);
+  var f= 222+ (3e3* Math.random());
+  var t= 0.05+ (Math.random()/20);
   var buffer= createSineWave(f/*f in Hz*/, t/*duration in seconds*/);
   musiquilla.push(Sound.create(buffer));
 }
