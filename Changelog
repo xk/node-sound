@@ -5,3 +5,8 @@ Falta añadirle un callback, y hacerla correr en un pthread.
 
 Ver test12.js DEMO DE BUFFERIFY
 
+2011-11-03 Añadir tests que muestran como sintetizar una onda:
+
+test-sinewave.js
+test-sinewaves.js
+
