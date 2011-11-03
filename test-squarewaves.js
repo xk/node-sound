@@ -2,7 +2,7 @@
 //Hace una musiquilla sintetizando unas cuantas sinusoidales randommente
 
 
-function createSineWave (f /*frequency in Hz*/, seconds /*duration in seconds*/) {
+function createSquareWave (f /*frequency in Hz*/, seconds /*duration in seconds*/) {
   //returns a buffer containing a sound of a sine wave of frequency f and duration seconds in PCM format
 
   function floatToSignedInteger (value) {
@@ -31,7 +31,7 @@ function createSineWave (f /*frequency in Hz*/, seconds /*duration in seconds*/)
   var step= kChannels* kBytesPerSample;
   do {
     var α= (f* 2* Math.PI* i/ kSamplesPerSecond/ step) % (2* Math.PI);
-    var sample= floatToSignedInteger(Math.sin(α));
+    var sample= floatToSignedInteger((α > Math.PI) ? 1 : -1);
     //process.stdout.write([i/step, α, sample.v, sample.hi, sample.lo] + "\r\n");
     buffer[i]= buffer[i+2]= sample.lo;
     buffer[i+1]= buffer[i+3]= sample.hi;
@@ -50,7 +50,7 @@ var i= 20;
 while (i--) {
   var f= 222+ (3e3* Math.random());
   var t= 0.05+ (Math.random()/20);
-  var buffer= createSineWave(f/*f in Hz*/, t/*duration in seconds*/);
+  var buffer= createSquareWave(f/*f in Hz*/, t/*duration in seconds*/);
   musiquilla.push(Sound.create(buffer));
 }
 

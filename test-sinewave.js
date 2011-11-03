@@ -30,7 +30,7 @@ function createSineWave (f /*frequency in Hz*/, seconds /*duration in seconds*/)
   var i= 0;
   var step= kChannels* kBytesPerSample;
   do {
-    var α= f* 2* Math.PI* i/ kSamplesPerSecond/ step;
+    var α= (f* 2* Math.PI* i/ kSamplesPerSecond/ step) % (2* Math.PI);
     var sample= floatToSignedInteger(Math.sin(α));
     //process.stdout.write([i/step, α, sample.v, sample.hi, sample.lo] + "\r\n");
     buffer[i]= buffer[i+2]= sample.lo;
