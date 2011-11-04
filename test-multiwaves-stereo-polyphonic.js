@@ -96,8 +96,8 @@ while (i--) {
 (function cb () {
   if (!musiquilla.length) return (DONE= 1);
   musiquilla.pop().play(cb);
-  musiquilla.pop().play(cb);
-  musiquilla.pop().play(cb);
+  if (musiquilla.length) musiquilla.pop().play(cb);
+  if (musiquilla.length) musiquilla.pop().play(cb);
 })();
 
 (function cb () { if (!DONE) setTimeout(cb, 333); })();
