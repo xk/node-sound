@@ -1,5 +1,5 @@
 //2011-11-03 Jorge@jorgechamorro.com
-//Cómo sintetizar una onda sinusoidal
+//Cómo sintetizar una onda
 
 
 var createWave= (function () {
@@ -93,11 +93,11 @@ while (i--) {
   musiquilla.push(Sound.create(buffer));
 }
 
-(function cb () {
+function go () {
   if (!musiquilla.length) return (DONE= 1);
-  musiquilla.pop().play(cb);
-  if (musiquilla.length) musiquilla.pop().play(cb);
-  if (musiquilla.length) musiquilla.pop().play(cb);
-})();
+  musiquilla.pop().play(go);
+}
+go();
+go();
 
 (function cb () { if (!DONE) setTimeout(cb, 333); })();

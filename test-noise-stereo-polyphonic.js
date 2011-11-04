@@ -53,7 +53,7 @@ var createWave= (function () {
     var kSamplesPerSecond= 44100;
     var buffer= new Buffer(Math.floor(seconds*kSamplesPerSecond)* kChannels* kBytesPerSample);
 
-    var waves= [sine_w, square_w, sawtooth_w, silence_w];
+    var waves= [noise_w, silence_w];
     var left= waves[rnd(waves.length)];
     var right= waves[rnd(waves.length)];
 
@@ -85,7 +85,7 @@ var DONE= 0;
 var Sound= require('./build/default/sound');
 
 var musiquilla= [];
-var i= 50;
+var i= 200;
 while (i--) {
   var f= 222+ (3e3* Math.random());
   var t= 0.05+ (Math.random()/20);
@@ -93,11 +93,11 @@ while (i--) {
   musiquilla.push(Sound.create(buffer));
 }
 
-
 function go () {
   if (!musiquilla.length) return (DONE= 1);
   musiquilla.pop().play(go);
 }
+go();
 go();
 
 (function cb () { if (!DONE) setTimeout(cb, 333); })();

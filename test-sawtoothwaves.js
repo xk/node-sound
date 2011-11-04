@@ -1,5 +1,5 @@
 //2011-11-03 Jorge@jorgechamorro.com
-//Hace una musiquilla sintetizando unas cuantas sinusoidales randommente
+//Hace una musiquilla sintetizando unas cuantas randommente
 
 
 function createSawtoothWave (f /*frequency in Hz*/, seconds /*duration in seconds*/) {

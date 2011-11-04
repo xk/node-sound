@@ -1,5 +1,5 @@
 //2011-11-03 Jorge@jorgechamorro.com
-//Cómo sintetizar una onda sinusoidal
+//Cómo sintetizar una onda cuadrada
 
 
 function createSquareWave (f /*frequency in Hz*/, seconds /*duration in seconds*/) {
