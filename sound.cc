@@ -31,38 +31,37 @@
 #endif
 
 
-  typedef struct playerStruct {
-    
-    int paused;
-    long int id;
-    int playing;
-    int destroying;
-    unsigned long loop;
-    ssize_t bufferLength;
+typedef struct playerStruct {
+  int paused;
+  long int id;
+  int playing;
+  int destroying;
+  unsigned long loop;
+  ssize_t bufferLength;
     
 #if defined (__APPLE__)
-    AudioQueueRef AQ;
-    UInt32 AQBuffer1Length;
-    UInt32 AQBuffer2Length;
-    AudioQueueBufferRef AQBuffer1;
-    AudioQueueBufferRef AQBuffer2;
-    AudioStreamBasicDescription* format;
-    ExtAudioFileRef inputAudioFile;
+  AudioQueueRef AQ;
+  UInt32 AQBuffer1Length;
+  UInt32 AQBuffer2Length;
+  AudioQueueBufferRef AQBuffer1;
+  AudioQueueBufferRef AQBuffer2;
+  AudioStreamBasicDescription* format;
+  ExtAudioFileRef inputAudioFile;
 #endif
 
-    int hasCallback;
-    int callbackIsPending;
-    v8::Persistent<v8::Object> pendingJSCallback;
-    v8::Persistent<v8::Object> JSObject;
-    v8::Persistent<v8::Object> JSCallback;
-  } playerStruct;
+  int hasCallback;
+  int callbackIsPending;
+  v8::Persistent<v8::Object> pendingJSCallback;
+  v8::Persistent<v8::Object> JSObject;
+  v8::Persistent<v8::Object> JSCallback;
+};
   
 #if defined (__APPLE__)
   static AudioStreamBasicDescription gFormato;
   typedef Boolean macBoolean;
 #endif
 
-  static playerStruct* fondoSnd;
+static playerStruct* fondoSnd;
 
 using namespace node;
 using namespace v8;
@@ -71,18 +70,21 @@ typedef struct bufferStruct {
   void* buffer;
   ssize_t used;
   ssize_t size;
-} bufferStruct;
+};
 
-#define kPlayCallbackQueueItemType 1
-#define kRenderCallbackQueueItemType 2
-#define kBufferListQueueItemType 3
-#define kRenderJobsListQueueItemType 4
+enum kTypes {
+  kPlayCallbackQueueItemType,
+  kRenderCallbackQueueItemType,
+  kBufferListQueueItemType,
+  kRenderJobsListQueueItemType
+};
+
 typedef struct queueStruct {
   int type;
   void* item;
   queueStruct* next;
   queueStruct* last;
-} queueStruct;
+};
 static queueStruct* callbacksQueue= NULL;
 static queueStruct* renderJobsQueue= NULL;
 static ev_async eio_sound_async_notifier;
@@ -95,7 +97,7 @@ typedef struct renderJob {
   ssize_t bytesRead;
   queueStruct* qHead;
   v8::Persistent<v8::Object> JSCallback;
-} renderJob;
+};
 static pthread_t theRenderThread;
 
 static v8::Persistent<String> volume_symbol;
