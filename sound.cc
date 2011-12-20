@@ -18,7 +18,6 @@
 #include <v8.h>
 #include <node.h>
 #include <node_buffer.h>
-#include <ev.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>

@@ -1,6 +1,13 @@
 // test .play() and .pause();
 
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 
 var buf= new Buffer(256*256);
 var i= buf.length;

@@ -1,7 +1,14 @@
 // latency tests. not too good, it's about 30 ms.
 
 
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 
 var tinyBuffer= new Buffer(1024); // 532/(44100*4) -> 0,003015873016 s -> ~3 ms
 var len= tinyBuffer.length;

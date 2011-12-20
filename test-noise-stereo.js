@@ -82,7 +82,14 @@ var createWave= (function () {
 
 
 var DONE= 0;
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 
 var musiquilla= [];
 var i= 200;

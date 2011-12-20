@@ -5,7 +5,14 @@ var len= buffer.length;
 //while (len--) buffer[len]= Math.floor(Math.random()*256); // noise
 while (len--) buffer[len]= len%256; // saw
 
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 
 var sound= Sound.create(buffer).volume(0).loop(1e9).play();
 

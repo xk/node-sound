@@ -43,7 +43,14 @@ function createSineWave (f /*frequency in Hz*/, seconds /*duration in seconds*/)
 
 
 var DONE= 0;
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 var buffer= createSineWave(1e3/*f in Hz*/, 1/*duration in seconds*/);
 var sound= Sound.create(buffer);
 sound.loop(3).play(cb);

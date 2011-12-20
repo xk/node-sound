@@ -1,6 +1,13 @@
 // test for async bufferify()s IN SERIES in a loop to detect leaks and other problems.
 
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 var sounds= ['sound.wav', 'sound.aif', 'sound.au', 'sound.mp3', 'sound.m4a'];
 
 

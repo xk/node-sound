@@ -1,6 +1,13 @@
 // exercise recursive .play() from the callback; It's a bad idea, looping via the cb() produces glitches, should really use .loop() instead !
 
-var Sound= require('./build/default/sound');
+var Sound;
+var paths= ['./build/default/sound', './build/release/sound', 'sound'];
+while (paths.length) {
+  var p= paths.pop();
+  try { Sound= require(p) } catch (e) { continue }
+  console.log("Módulo de sonido encontrado en: '"+ p+ "'");
+  break;
+}
 
 var quit= setTimeout(function nop(){}, 1e9); // don't quit
 

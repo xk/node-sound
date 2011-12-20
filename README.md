@@ -1,14 +1,18 @@
 #node-sound The best sound library for node.js
 
+Node-sound es un módulo nativo para node.js que sirve para crear/sintetizar y reproducir sonidos en tu Mac, en JavaScript, a partir de un buffer, usando las librerías de sonido incorporadas en el Mac OSX.
+
 ##Instalar
 
-**NOTA: Sólo funciona con node >= v0.3 y <= v0.5.0**
+**NOTA: Sólo funciona con node >= v0.3.6**
+**NOTA: Sólo funciona con Mac OSX**
 
-**You need node >= v0.3 and <= v0.5.0 to run this program**
+**You need node >= v0.3.6 to run this program**
+**Only for Mac OSX**
 
-**2011-29-10 -> It does NOT work with node 0.5.11**
+(Puedes encontrar cualquier versión de node, desde la primera hasta la última, en: http://nodejs.org/dist/ )
 
-Node-sound es un módulo nativo para node.js. Nativo significa fundamentalmente dos cosas: que está escrito en C y que para poder usarlo hay que compilarlo primero.
+Que un módulo sea nativo significa fundamentalmente dos cosas: que está escrito en C y que para poder usarlo hay que compilarlo primero.
 
 Es muy fácil de hacer, suponiendo que ya tengas node.js instalado (y compilado y funcionando).
 
@@ -21,13 +25,15 @@ Después descomprimes ese fichero y creará una carpeta *xk-node-sound-xxxx*. Pu
 Por último, para compilar el módulo teclea:
 
     cd xk-node-sound
-    node-waf configure clean build
+    node-waf configure uninstall distclean configure build install
 
 En mi Mac eso produce algo así, donde lo más importante es la última línea: *'build' finished successfully*:
 
 <img src= "https://github.com/xk/node-sound/raw/master/imgs/node-waf-output.png" border= "0">
 
-Si todo ha ido bien, el módulo compilado se encontrará en *xk-node-sound/build/default/sound.node*
+Si todo ha ido bien, el módulo compilado se encontrará, dependiendo de la versión de node que tengas instalada, en *xk-node-sound/build/default/sound.node* (versiones más antiguas de node), o en *xk-node-sound/build/release/sound.node* (versiones más modernas de node)
+
+Si algo no va bien, puedes abrir un ticket haciendo click en "issues" arriba, en esta misma página. Describe el problema lo mejor posible y yo recibiré un email automáticamente, y trataré de resolverlo lo antes posible.
 
 <p>&nbsp;</p>
 ##Manual de instrucciones:
@@ -40,9 +46,13 @@ Lo primero es cargar el módulo y asignarle un nombre (por ejemplo *Sound*) en l
 
 Si node no es capaz de encontralo, tienes dos opciones.
 
-La mejor opción: translada el fichero *sound.node* a la carpeta *node_modules*, o bien, especifica el path completo hasta la carpeta en la que se encuentra *sound.node* :
+La mejor opción: translada el fichero *sound.node* a la carpeta *node_modules* (si no existe, simplemente créala), o bien, especifica el path completo hasta la carpeta en la que se encuentra *sound.node* :
 
     require('/absolute/path/to/sound.node's/folder/sound'); // ugh !
+    
+Por ejemplo, los tests usan:
+    
+    require('./build/default/sound');
 
 El módulo (que una vez `require()`d se llama *Sound*) tiene 4 métodos:
 

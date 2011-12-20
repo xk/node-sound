@@ -10,3 +10,6 @@ Ver test12.js DEMO DE BUFFERIFY
 test-sinewave.js
 test-sinewaves.js
 
+2011-12-20
+
+Ahora funciona con cualquier node >= 0.3.6 (comprobado desde 0.3.6 hasta 0.6.6)
