@@ -1,8 +1,7 @@
 #node-sound The best sound library for node.js
-
-
+<p>&nbsp;</p>
 Node-sound es un módulo nativo para node.js que sirve para crear/sintetizar y reproducir sonidos en tu Mac, en JavaScript, a partir de un buffer, o a partir de cualquier fichero de música (.aiff, .mp3, .m4a, .aac, .mov, ...) usando las librerías de sonido incorporadas en el Mac OSX.
-
+<p>&nbsp;</p>
 
 ##Instalar
 
