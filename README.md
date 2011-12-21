@@ -4,9 +4,9 @@ Node-sound es un módulo nativo para node.js que sirve para crear/sintetizar y r
 
 ##Instalar
 
-**NOTA: Sólo funciona con node >= v0.3.6. Sólo funciona con Mac OSX**
+**NOTA: funciona con cualquier node >= v0.3.6. Sólo funciona con Mac OSX**
 
-**You need node >= v0.3.6 to run this program. Only for Mac OSX**
+**Works with all nodes >= v0.3.6 . Only for Mac OSX**
 
 (Puedes encontrar cualquier versión de node, desde la primera hasta la última, en: http://nodejs.org/dist/ )
 
