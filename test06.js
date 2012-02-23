@@ -14,7 +14,8 @@ while (len--) {
 }
 
 
-require('./build/default/sound').create(buffer).loop(1e6).volume(1).play(); // loop
+var S= require('sound');
+S.create(buffer).loop(1e6).volume(1).play(); // loop
 
-setTimeout(Date.now, 1e9); // forever
+setTimeout(Date, 1e9); // forever
 

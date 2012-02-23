@@ -15,14 +15,14 @@
   - bufferify(path, cb) renders it in a background thread and calls cb(err, buffer) when done.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <v8.h>
 #include <node.h>
 #include <node_buffer.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <pthread.h>
-#include <stdlib.h>
 
 #if defined (__APPLE__)
   #include <AudioToolbox/AudioToolbox.h>
@@ -973,6 +973,9 @@ v8::Handle<Value> BufferifySync (const Arguments &args) {
   str= args[0]->ToString();
   job.str= *String::Utf8Value(str);
   job.strLen= str->Utf8Length();
+  if (!job.strLen) {
+    return Undefined();
+  }
   job.bytesRead= 0;
   job.qHead= NULL;
   
