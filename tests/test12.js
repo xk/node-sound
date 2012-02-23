@@ -13,8 +13,9 @@ var sounds= ['sound.wav', 'sound.m4a', 'sound.aif', 'sound.mp3', 'sound.au', 'So
 var i= sounds.length;
 (function next () {
   if (i--) {
-    process.stdout.write('\n******************************* '+ sounds[i]+ " ->");
-    console.log(" -> buffer.length -> "+ Sound.create(Sound.bufferifySync(sounds[i])).play(next).data.length);
+    var path= __dirname+ '/'+ sounds[i];
+    process.stdout.write('\n******************************* '+ path+ " ->");
+    console.log(" -> buffer.length -> "+ Sound.create(Sound.bufferifySync(path)).play(next).data.length);
   }
   else {
     clearTimeout(quitTimer);

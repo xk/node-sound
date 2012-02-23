@@ -1,15 +1,20 @@
-2011-05-16
+2012-02-23
+Poner la cosas en su sitio: crear /src y /tests
 
-Ya funciona la versión *síncrona* de bufferify(path) -> buffer.
-Falta añadirle un callback, y hacerla correr en un pthread.
 
-Ver test12.js DEMO DE BUFFERIFY
+2011-12-20
+Ahora funciona con cualquier node >= 0.3.6 (comprobado desde 0.3.6 hasta 0.6.6)
 
-2011-11-03 Añadir tests que muestran como sintetizar una onda:
+
+2011-11-03
+Añadir tests que muestran como sintetizar una onda:
 
 test-sinewave.js
 test-sinewaves.js
 
-2011-12-20
 
-Ahora funciona con cualquier node >= 0.3.6 (comprobado desde 0.3.6 hasta 0.6.6)
+2011-05-16
+Ya funciona la versión *síncrona* de bufferify(path) -> buffer.
+Falta añadirle un callback, y hacerla correr en un pthread.
+
+Ver test12.js DEMO DE BUFFERIFY

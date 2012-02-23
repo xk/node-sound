@@ -12,4 +12,4 @@ def build(bld):
   obj.cxxflags = ["-g0", "-D_FILE_OFFSET_BITS=64",
                   "-D_LARGEFILE_SOURCE", "-Wall"]
   obj.target = "sound"
-  obj.source = "sound.cc"
+  obj.source = "src/sound.cc"
